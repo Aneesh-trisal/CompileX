@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>C++ Code Editor</title>
+  <style>
+    /* Light theme variables */
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #333;
+      --border-color: #ddd;
+      --accent-color: #2563eb;
+      --sidebar-bg: #f6f6f6;
+      --editor-bg: #fff;
+      --terminal-bg: #fff;
+      --terminal-text: #000;
+      --success-color: #22c55e;
+      --resize-hover-bg: rgba(0, 0, 0, 0.1);
+    }
+  
+    /* Dark theme */
+    body.dark-mode {
+      --bg-color: #1e1e1e;
+      --text-color: #d4d4d4;
+      --border-color: #444;
+      --accent-color: #3b82f6;
+      --sidebar-bg: #252526;
+      --editor-bg: #1e1e1e;
+      --terminal-bg: #000;
+      --terminal-text: #fff;
+      --resize-hover-bg: rgba(255, 255, 255, 0.1);
+    }
+  
+    /* Basic reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  
+    html, body {
+      height: 100%;
+      overflow: hidden; /* Prevent body scrollbars */
+    }
+  
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+    }
+  
+    .toolbar button.toggle-theme {
+      font-size: 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+  
+    .input-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  
+    .input-container input {
+      flex: 1;
+      padding: 5px;
+      border: 1px solid var(--border-color);
+      background: var(--editor-bg);
+      color: var(--text-color);
+    }
+  
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+  
+    /* File Manager Sidebar */
+    .file-manager {
+      min-width: 0px;
+      width: 250px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+  
+    #toggleFileManagerBtn {
+      position: absolute;
+      left: 250px;
+      top: 10px;
+      background: var(--sidebar-bg);
+      border: 1px solid var(--border-color);
+      padding: 5px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: left 0.3s ease;
+    }
+  
+    .section-header {
+      padding: 8px 16px;
+      font-weight: bold;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 50px;
+      min-height: 40px;
+    }
+  
+    .section-header button {
+      padding: 2px 6px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+  
+    /* Resize handles */
+    .resize-handle {
+      position: absolute;
+      z-index: 1;
+    }
+  
+    .resize-handle-x {
+      cursor: col-resize;
+      width: 4px;
+      top: 0;
+      right: -2px;
+      bottom: 0;
+      background: var(--border-color);
+      transition: background-color 0.2s;
+    }
+  
+    .resize-handle-x:hover {
+      background: var(--accent-color);
+    }
+  
+    .file-manager .toolbar {
+      padding: 8px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+    }
+  
+    .file-manager .toolbar button {
+      flex: 1;
+      padding: 8px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  
+    .file-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+  
+    .file-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+  
+    .file-item:hover,
+    .file-item.active {
+      background: var(--accent-color);
+      color: white;
+    }
+  
+    .file-item .file-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+  
+    .file-item .file-actions {
+      display: flex;
+      gap: 4px;
+    }
+  
+    .file-item .file-actions button {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 14px;
+    }
+  
+    .file-item .file-arrow {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  
+    .file-item.active .file-arrow {
+      opacity: 1;
+    }
+  
+    /* Main content area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 300px;
+      overflow: hidden; /* Prevent main-content from scrolling directly */
+    }
+  
+    /* Toolbar styles */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0; /* Prevent toolbar from shrinking */
+    }
+  
+    .toolbar button {
+      margin-right: 8px;
+      padding: 6px 12px;
+      background: var(--accent-color);
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+  
+    .toolbar button:hover {
+      opacity: 0.9;
+    }
+  
+    .toolbar button.save {
+      background: var(--success-color);
+    }
+  
+    /* Editor container with line numbers */
+    .editor-wrapper {
+      flex: 1; /* Take available space */
+      overflow-y: auto; /* Enable scrolling for editor */
+      display: flex;
+      flex-direction: column;
+      min-height: 100px; /* Minimum height to ensure visibility */
+    }
+  
+    .editor-container {
+      display: flex;
+      position: relative;
+      flex-grow: 1; /* Grow within wrapper */
+    }
+  
+    .line-numbers {
+      padding: 16px 8px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      color: var(--text-color);
+      font-family: 'Fira Code', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+      text-align: center;
+      user-select: none;
+      min-width: 40px;
+      width: 40px;
+    }
+  
+    #editor {
+      flex: 1;
+      padding: 16px;
+      padding-left: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+      border: none;
+      outline: none;
+      background: var(--editor-bg);
+      color: transparent;
+      caret-color: var(--text-color);
+      resize: none;
+      height: auto; /* Let height grow with content */
+    }
+  
+    #highlightOverlay {
+      position: absolute;
+      top: 0;
+      left: 40px;
+      right: 0;
+      padding: 16px;
+      padding-left: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: var(--text-color);
+      pointer-events: none;
+      white-space: pre-wrap;
+      z-index: 0;
+    }
+  
+    /* Status bar */
+    .status-bar {
+      padding: 4px 16px;
+      background: var(--sidebar-bg);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      flex-shrink: 0; /* Prevent status bar from shrinking */
+    }
+  
+    /* Terminal styles */
+    .terminal {
+      height: 150px; /* Fixed height, adjustable via resize */
+      background: var(--terminal-bg);
+      color: var(--terminal-text);
+      border-top: 1px solid var(--border-color);
+      position: relative;
+      transition: height 0.3s ease;
+      min-height: 40px;
+      max-height: calc(100vh - 200px);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0; /* Prevent terminal from shrinking */
+      overflow-y: auto; /* Enable scrolling if content exceeds height */
+    }
+  
+    .terminal-content {
+      padding: 8px 16px;
+      white-space: pre-wrap;
+      flex: 1;
+    }
+  
+    .terminal-line-numbers {
+      padding: 8px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      color: var(--text-color);
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      min-width: 40px;
+      width: 40px;
+    }
+  
+    /* Hidden inputs */
+    .hidden-input {
+      display: none;
+    }
+  
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-color);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      z-index: 1000;
+      width: 90%;
+      max-width: 500px;
+    }
+  
+    .modal h2 {
+      margin-bottom: 15px;
+    }
+  
+    .modal-content {
+      display: flex;
+      gap: 20px;
+    }
+  
+    .modal-content .share-url {
+      flex: 1;
+    }
+  
+    .modal-content .qr-code {
+      width: 150px;
+      height: 150px;
+      background: white;
+    }
+  
+    .modal input {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--editor-bg);
+      color: var(--text-color);
+    }
+  
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+  
+    .modal.active,
+    .overlay.active {
+      display: block;
+    }
+  
+    .terminal-content span {
+      display: block;
+      margin: 4px 0;
+    }
+  
+    .terminal-content .error-highlight {
+      color: #ef4444;
+      font-weight: bold;
+    }
+  
+    .terminal-content strong {
+      color: var(--accent-color);
+    }
+  
+    /* Smooth transitions for sliding */
+    .file-manager, .terminal {
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+  
+    /* Style the toggle button */
+    .section-header .toggle-btn {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 8px;
+      transition: transform 0.2s ease;
+    }
+  
+    .section-header .toggle-btn.collapsed {
+      transform: rotate(90deg);
+    }
+  
+    /* Adjust resize handle visibility when collapsed */
+    .file-manager.collapsed .resize-handle-x,
+    .terminal.collapsed::before {
+      display: none;
+    }
+  
+    /* Ensure file manager content is hidden when collapsed */
+    .file-manager.collapsed .toolbar,
+    .file-manager.collapsed .file-list {
+      display: none;
+    }
+  
+    .file-manager.collapsed {
+      overflow: visible;
+    }
+  
+    /* Ensure terminal content is hidden when collapsed */
+    .terminal.collapsed .terminal-content {
+      display: none;
+    }
+  
+    .terminal.collapsed {
+      overflow: visible;
+    }
+  
+    /* File manager collapsed header */
+    .file-manager.collapsed .section-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 40px;
+      height: 100%;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      padding: 16px 8px;
+      border-right: 1px solid var(--border-color);
+      border-bottom: none;
+    }
+  
+    /* Terminal collapsed header */
+    .terminal.collapsed .section-header {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+    }
+  
+    /* Ensure main content adjusts when file manager is collapsed */
+    .file-manager.collapsed + .main-content {
+      margin-left: 40px;
+    }
+  
+    .ai-suggestion {
+      color: #888;
+      pointer-events: none;
+      font-family: 'Fira Code', monospace;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+  
+    body.dark-mode .ai-suggestion {
+      color: #666;
+    }
+  
+    /* VS Code-inspired Syntax Highlighting Colors */
+    .keyword { color: #AF00DB; }
+    .identifier { color: #001080; }
+    .string { color: #A31515; }
+    .number { color: #09885A; }
+    .operator { color: #0000FF; }
+    .comment { color: #6A9955; }
+    body.dark-mode .keyword { color: #C586C0; }
+    body.dark-mode .identifier { color: #9CDCFE; }
+    body.dark-mode .string { color: #CE9178; }
+    body.dark-mode .number { color: #B5CEA8; }
+    body.dark-mode .operator { color: #D4D4D4; }
+    body.dark-mode .comment { color: #6A9955; }
+    body.dark-mode .success { color: #a6e22e; }
+  
+    /* Toggle switch styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+      margin-left: 8px;
+    }
+  
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+  
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 20px;
+    }
+  
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+  
+    input:checked + .slider {
+      background-color: var(--accent-color);
+    }
+  
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+  
+    body.dark-mode .slider {
+      background-color: #666;
+    }
+  
+    /* Settings container */
+    .settings-container {
+      position: relative;
+      display: inline-block;
+    }
+  
+    /* Settings menu */
+    .settings-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: var(--sidebar-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 8px;
+      z-index: 1000;
+      width: 200px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  
+    .settings-menu.active {
+      display: block;
+    }
+  
+    /* Settings row */
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+  
+    .settings-row span {
+      font-size: 14px;
+      color: var(--text-color);
+    }
+  
+    /* Adjust toggle switch in settings */
+    .settings-row .switch {
+      margin-left: 8px;
+    }
+  
+    /* Chatbot modal */
+    .chat-history {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--editor-bg);
+      margin-bottom: 10px;
+    }
+  
+    .chat-message {
+      padding: 8px;
+      margin: 4px 0;
+      border-radius: 4px;
+    }
+  
+    .chat-message.user {
+      background: var(--accent-color);
+      color: white;
+      text-align: right;
+    }
+  
+    .chat-message.ai {
+      background: var(--sidebar-bg);
+      color: var(--text-color);
+    }
+  
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+  
+    .chat-input input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--editor-bg);
+      color: var(--text-color);
+    }
+  
+    .chat-input button {
+      padding: 8px 16px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  
+    .chat-input button:hover {
+      opacity: 0.9;
+    }
+
+    .resize-handle-y {
+      position: absolute;
+      z-index: 10;
+      cursor: row-resize;
+      height: 6px; /* Increased for visibility */
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--border-color);
+      transition: background-color 0.2s;
+    }
+    
+    .resize-handle-y:hover {
+      background: var(--accent-color);
+    }
+    
+    .terminal.collapsed .resize-handle-y {
+      display: none; /* Hide when terminal is collapsed */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="file-manager">
+      <div class="section-header">
+        File Manager
+        <button class="toggle-btn" onclick="toggleFileManager()">◀</button>
+      </div>
+      <div class="toolbar">
+        <button onclick="createNewFile()">➕</button>
+        <button onclick="openFileInput.click()">Open</button>
+      </div>
+      <div id="fileList" class="file-list"></div>
+      <div class="resize-handle resize-handle-x"></div>
+    </aside>
+    <section class="main-content">
+      <div class="section-header">C++ Compiler</div>
+      <div class="toolbar">
+        <div>
+          <button onclick="saveToDevice()" class="save">Save</button>
+          <button onclick="runCode()">Run</button>
+          <button onclick="shareCode()">Share</button>
+          <button onclick="openChatbot()">Chatbot</button>
+          <button onclick="clearEditor()">Clear Editor</button>
+          <button onclick="clearTerminal()">Clear Terminal</button>
+        </div>
+        <div class="settings-container">
+          <button id="settingsToggle" class="toggle-theme">⚙️</button>
+          <div id="settingsMenu" class="settings-menu">
+            <div class="settings-row">
+              <span>Theme</span>
+              <button onclick="toggleTheme()" id="themeToggle" class="toggle-theme">☀️</button>
+            </div>
+            <div class="settings-row">
+              <span>Fullscreen</span>
+              <button onclick="toggleFullscreen()" id="fullscreenToggle" class="toggle-theme">🔲</button>
+            </div>
+            <div class="settings-row">
+              <span>AI</span>
+              <label class="switch">
+                <input type="checkbox" id="aiToggle" checked onclick="toggleAI()">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="editor-wrapper">
+        <div class="editor-container">
+          <div class="line-numbers" id="lineNumbers"></div>
+          <textarea id="editor" spellcheck="false" placeholder="Type your code here..."></textarea>
+          <div id="highlightOverlay" class="highlight-overlay"></div>
+        </div>
+      </div>
+      <div class="status-bar">
+        <span id="lineCount">Lines: 1</span>
+        <span id="cursorPos">Ln 1, Col 1</span>
+      </div>
+      <div class="terminal">
+        <div class="section-header">
+          Terminal Output
+          <button class="toggle-btn" onclick="toggleTerminal()">▼</button>
+        </div>
+        <div style="display: flex; flex: 1; overflow: hidden;">
+          <div class="terminal-line-numbers" id="terminalLineNumbers"></div>
+          <div id="terminalContent" class="terminal-content"></div>
+        </div>
+        <div class="resize-handle resize-handle-y"></div>
+      </div>
+    </section>
+  </div>
+
+  <input type="file" id="openFileInput" class="hidden-input" accept=".cpp,.txt" />
+
+  <div class="overlay" id="overlay"></div>
+  <div class="modal" id="shareModal">
+    <h2>Share Code</h2>
+    <div class="modal-content">
+      <div class="share-url">
+        <p>Share this URL to share your code:</p>
+        <input type="text" id="shareUrl" readonly onclick="this.select()" />
+        <div class="modal-buttons">
+          <button onclick="copyShareUrl()">Copy URL</button>
+          <button onclick="closeShareModal()">Close</button>
+        </div>
+      </div>
+      <div class="qr-code" id="qrCode"></div>
+    </div>
+  </div>
+  <div class="modal" id="chatbotModal">
+    <h2>AI Chatbot</h2>
+    <div id="chatHistory" class="chat-history"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Ask a question or request code..." />
+      <button onclick="sendChatMessage()">Send</button>
+    </div>
+    <div class="modal-buttons">
+      <button onclick="closeChatbot()">Close</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
+  <script>
+    const GEMINI_API_KEY = 'AIzaSyBtIfQVHYrtQROsTKDDp1JIWn_G74E9xf4';
+    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+
+    async function callGemini(prompt) {
+      if (!isAIEnabled) return "AI is disabled";
+      try {
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 200 }
+          })
+        });
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text.trim();
+      } catch (error) {
+        console.error('Gemini API Error:', error);
+        return "Error: Could not fetch AI response";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      let editor = document.getElementById("editor");
+      let defaultCode = `#include <iostream>\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}`;
+      if (!editor.value.trim()) {
+        editor.value = defaultCode;
+        highlightSyntax();
+      }
+    });
+
+    let currentFileId = null;
+    let currentFileName = "untitled.cpp";
+    let isAIEnabled = true;
+    let suggestionTimeout;
+    let currentSuggestion = '';
+    let suggestionSpan = null;
+
+    document.getElementById("aiToggle").checked = isAIEnabled;
+
+    function toggleAI() {
+      isAIEnabled = !isAIEnabled;
+      const aiToggle = document.getElementById("aiToggle");
+      if (!isAIEnabled) removeSuggestion();
+    }
+
+    function initResize() {
+      const fileManager = document.querySelector('.file-manager');
+      const terminal = document.querySelector('.terminal');
+      const resizeHandleX = document.querySelector('.resize-handle-x');
+      const resizeHandleY = document.querySelector('.resize-handle-y');
+
+      if (!resizeHandleY) {
+        console.error('Resize handle Y not found in DOM');
+        return;
+      }
+
+      let isResizingX = false;
+      let isResizingY = false;
+      let startX, startWidth, startY, startHeight;
+
+      resizeHandleX.addEventListener('mousedown', (e) => {
+        if (!fileManager.classList.contains('collapsed')) {
+          isResizingX = true;
+          startX = e.clientX;
+          startWidth = parseInt(getComputedStyle(fileManager).width, 10);
+          document.body.style.cursor = 'col-resize';
+        }
+      });
+
+      resizeHandleY.addEventListener('mousedown', (e) => {
+        if (!terminal.classList.contains('collapsed')) {
+          isResizingY = true;
+          startY = e.clientY;
+          startHeight = terminal.offsetHeight;
+          document.body.style.cursor = 'row-resize';
+        }
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (isResizingX) {
+          const width = Math.max(200, Math.min(startWidth + (e.clientX - startX), window.innerWidth - 300));
+          fileManager.style.width = width + 'px';
+        }
+
+        if (isResizingY) {
+          const height = Math.max(40, Math.min(startHeight + (e.clientY - startY), window.innerHeight - 200));
+          terminal.style.height = height + 'px';
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isResizingX || isResizingY) {
+          isResizingX = false;
+          isResizingY = false;
+          document.body.style.cursor = 'default';
+        }
+      });
+
+      const terminalHeader = terminal.querySelector('.section-header');
+      terminalHeader.addEventListener('mousedown', (e) => {
+        if (e.target === terminalHeader && !terminal.classList.contains('collapsed')) {
+          const startY = e.clientY;
+          const startHeight = terminal.offsetHeight;
+          function onMouseMove(e) {
+            const delta = startY - e.clientY;
+            const newHeight = Math.max(40, Math.min(startHeight + delta, window.innerHeight - 200));
+            terminal.style.height = newHeight + 'px';
+          }
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          }
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", initResize);
+
+    function toggleFileManager() {
+      const fileManager = document.querySelector('.file-manager');
+      const toggleBtn = fileManager.querySelector('.toggle-btn');
+      if (fileManager.classList.contains('collapsed')) {
+        fileManager.style.width = '250px';
+        fileManager.classList.remove('collapsed');
+        toggleBtn.textContent = '◀';
+      } else {
+        fileManager.style.width = '0px';
+        fileManager.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+      }
+    }
+
+    function toggleTerminal() {
+      const terminal = document.querySelector('.terminal');
+      const toggleBtn = terminal.querySelector('.toggle-btn');
+      const currentHeight = terminal.style.height || '150px';
+
+      if (terminal.classList.contains('collapsed')) {
+        terminal.style.height = currentHeight;
+        terminal.classList.remove('collapsed');
+        toggleBtn.textContent = '▼';
+      } else {
+        terminal.style.height = '0px';
+        terminal.classList.add('collapsed');
+        toggleBtn.textContent = '▲';
+      }
+    }
+
+    const openFileInput = document.getElementById('openFileInput');
+    openFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentFileName = file.name;
+        editor.value = e.target.result;
+        const id = 'file_' + Date.now();
+        localStorage.setItem(id, JSON.stringify({
+          name: currentFileName,
+          content: e.target.result,
+          timestamp: Date.now()
+        }));
+        currentFileId = id;
+        updateFileList();
+        updateStatusBar();
+        updateLineNumbers();
+        highlightSyntax();
+      };
+      reader.readAsText(file);
+    });
+
+    function saveToDevice() {
+      if (!currentFileId) {
+        const name = prompt('Enter file name:', 'untitled.cpp');
+        if (!name) return;
+        currentFileName = name;
+        const id = 'file_' + Date.now();
+        localStorage.setItem(id, JSON.stringify({
+          name: currentFileName,
+          content: editor.value,
+          timestamp: Date.now()
+        }));
+        currentFileId = id;
+        updateFileList();
+      } else {
+        const file = JSON.parse(localStorage.getItem(currentFileId));
+        if (file) {
+          file.content = editor.value;
+          file.timestamp = Date.now();
+          localStorage.setItem(currentFileId, JSON.stringify(file));
+          updateFileList();
+        }
+      }
+      const saveBtn = document.querySelector("button.save");
+      saveBtn.textContent = "Saved!";
+      setTimeout(() => { saveBtn.textContent = "Save"; }, 1000);
+      if (confirm('Do you want to save the file to your device?')) {
+        const content = editor.value;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = currentFileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    }
+
+    function createNewFile() {
+      const name = prompt('Enter file name:', 'untitled.cpp');
+      if (!name) return;
+      currentFileName = name;
+      const id = 'file_' + Date.now();
+      localStorage.setItem(id, JSON.stringify({
+        name: currentFileName,
+        content: '',
+        timestamp: Date.now()
+      }));
+      currentFileId = id;
+      editor.value = '';
+      updateFileList();
+      updateStatusBar();
+      updateLineNumbers();
+      highlightSyntax();
+    }
+
+    function updateFileList() {
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = '';
+      const files = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('file_')) {
+          const file = JSON.parse(localStorage.getItem(key));
+          if (file.name.endsWith('.cpp')) { // Filter for .cpp files
+            files.push({ id: key, ...file });
+          }
+        }
+      }
+      files.sort((a, b) => b.timestamp - a.timestamp);
+      files.forEach(file => {
+        const div = document.createElement('div');
+        div.className = `file-item${currentFileId === file.id ? ' active' : ''}`;
+        div.innerHTML = `
+          <div class="file-name">
+            <span class="file-arrow">▶</span>
+            <span>${file.name}</span>
+          </div>
+          <div class="file-actions">
+            <button onclick="renameFile('${file.id}', event)" title="Rename">✏️</button>
+            <button onclick="deleteFile('${file.id}', event)" title="Delete">×</button>
+          </div>
+        `;
+        div.onclick = () => loadFile(file.id);
+        fileList.appendChild(div);
+      });
+    }
+
+    function loadFile(id) {
+      const file = JSON.parse(localStorage.getItem(id));
+      if (file) {
+        currentFileId = id;
+        currentFileName = file.name;
+        editor.value = file.content;
+        updateFileList();
+        updateStatusBar();
+        updateLineNumbers();
+        highlightSyntax();
+      }
+    }
+
+    function renameFile(id, event) {
+      event.stopPropagation();
+      const file = JSON.parse(localStorage.getItem(id));
+      if (!file) return;
+      const newName = prompt('Enter new file name:', file.name);
+      if (!newName || newName === file.name) return;
+      file.name = newName;
+      if (currentFileId === id) {
+        currentFileName = newName;
+      }
+      localStorage.setItem(id, JSON.stringify(file));
+      updateFileList();
+    }
+
+    function deleteFile(id, event) {
+      event.stopPropagation();
+      if (confirm('Delete this file?')) {
+        localStorage.removeItem(id);
+        if (currentFileId === id) {
+          currentFileId = null;
+          currentFileName = 'untitled.cpp';
+          editor.value = '';
+          updateLineNumbers();
+          highlightSyntax();
+        }
+        updateFileList();
+        updateStatusBar();
+      }
+    }
+
+    const editor = document.getElementById('editor');
+    const highlightOverlay = document.getElementById('highlightOverlay');
+    const terminal = document.getElementById('terminalContent');
+
+    function highlightSyntax() {
+      const keywords = ['int', 'float', 'double', 'char', 'if', 'else', 'for', 'while', 'return', 'class', '#include', 'namespace', 'public', 'private', 'void', 'main', 'std', 'cout', 'cin', 'using'];
+      const code = editor.value;
+      let highlighted = '';
+      let currentWord = '';
+      let inString = false;
+      let stringChar = '';
+      let inSingleComment = false;
+      let inMultiComment = false;
+
+      for (let i = 0; i < code.length; i++) {
+        const char = code[i];
+        if (inMultiComment) {
+          currentWord += char;
+          if (char === '/' && code[i - 1] === '*') {
+            highlighted += `<span class="comment">${currentWord}</span>`;
+            currentWord = '';
+            inMultiComment = false;
+          }
+        } else if (inSingleComment) {
+          if (char === '\n') {
+            highlighted += `<span class="comment">${currentWord}</span>`;
+            currentWord = char;
+            inSingleComment = false;
+          } else {
+            currentWord += char;
+          }
+        } else if (inString) {
+          currentWord += char;
+          if (char === stringChar && code[i - 1] !== '\\') {
+            highlighted += `<span class="string">${currentWord}</span>`;
+            currentWord = '';
+            inString = false;
+          }
+        } else if (char === '"' || char === "'") {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else if (/^\d+$/.test(currentWord)) {
+              highlighted += `<span class="number">${currentWord}</span>`;
+            } else if (/[+\-*/=<>!]/.test(currentWord)) {
+              highlighted += `<span class="operator">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inString = true;
+          stringChar = char;
+        } else if (char === '/' && code[i + 1] === '*') {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inMultiComment = true;
+          i++;
+        } else if (char === '/' && code[i + 1] === '/') {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inSingleComment = true;
+          i++;
+        } else if (/\s/.test(char)) {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else if (/^\d+$/.test(currentWord)) {
+              highlighted += `<span class="number">${currentWord}</span>`;
+            } else if (/[+\-*/=<>!]/.test(currentWord)) {
+              highlighted += `<span class="operator">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          highlighted += char;
+        } else {
+          currentWord += char;
+        }
+      }
+
+      if (currentWord) {
+        if (inMultiComment || inSingleComment) {
+          highlighted += `<span class="comment">${currentWord}</span>`;
+        } else if (inString) {
+          highlighted += `<span class="string">${currentWord}</span>`;
+        } else if (keywords.includes(currentWord)) {
+          highlighted += `<span class="keyword">${currentWord}</span>`;
+        } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+          highlighted += `<span class="identifier">${currentWord}</span>`;
+        } else if (/^\d+$/.test(currentWord)) {
+          highlighted += `<span class="number">${currentWord}</span>`;
+        } else if (/[+\-*/=<>!]/.test(currentWord)) {
+          highlighted += `<span class="operator">${currentWord}</span>`;
+        } else {
+          highlighted += currentWord;
+        }
+      }
+
+      highlightOverlay.innerHTML = highlighted;
+      adjustEditorHeight();
+    }
+
+    function adjustEditorHeight() {
+      const editor = document.getElementById('editor');
+      const highlightOverlay = document.getElementById('highlightOverlay');
+      const lineNumbers = document.getElementById('lineNumbers');
+      editor.style.height = 'auto';
+      const contentHeight = editor.scrollHeight;
+      editor.style.height = `${contentHeight}px`;
+      highlightOverlay.style.height = `${contentHeight}px`;
+      lineNumbers.style.height = `${contentHeight}px`;
+    }
+
+    editor.addEventListener('input', (e) => {
+      if (currentFileId) {
+        const file = JSON.parse(localStorage.getItem(currentFileId));
+        if (file) {
+          file.content = editor.value;
+          file.timestamp = Date.now();
+          localStorage.setItem(currentFileId, JSON.stringify(file));
+        }
+      }
+      updateStatusBar();
+      updateLineNumbers();
+      highlightSyntax();
+
+      clearTimeout(suggestionTimeout);
+      removeSuggestion();
+      if (!isAIEnabled) return;
+
+      suggestionTimeout = setTimeout(async () => {
+        const cursorPos = editor.selectionStart;
+        const codeBefore = editor.value.substring(0, cursorPos);
+        const codeAfter = editor.value.substring(cursorPos);
+        const prompt = `Provide only one line of valid, executable C++ code (no comments or explanations) to continue this:\n${codeBefore}`;
+        currentSuggestion = await callGemini(prompt);
+        if (currentSuggestion) {
+          highlightOverlay.innerHTML = highlightSyntaxCode(codeBefore) +
+                                       `<span class="ai-suggestion">${currentSuggestion}</span>` +
+                                       highlightSyntaxCode(codeAfter);
+          suggestionSpan = highlightOverlay.querySelector('.ai-suggestion');
+          adjustEditorHeight();
+        }
+      }, 500);
+    });
+
+    function highlightSyntaxCode(code) {
+      const keywords = ['int', 'float', 'double', 'char', 'if', 'else', 'for', 'while', 'return', 'class', '#include', 'namespace', 'public', 'private', 'void', 'main', 'std', 'cout', 'cin', 'using'];
+      let highlighted = '';
+      let currentWord = '';
+      let inString = false;
+      let stringChar = '';
+      let inSingleComment = false;
+      let inMultiComment = false;
+
+      for (let i = 0; i < code.length; i++) {
+        const char = code[i];
+        if (inMultiComment) {
+          currentWord += char;
+          if (char === '/' && code[i - 1] === '*') {
+            highlighted += `<span class="comment">${currentWord}</span>`;
+            currentWord = '';
+            inMultiComment = false;
+          }
+        } else if (inSingleComment) {
+          if (char === '\n') {
+            highlighted += `<span class="comment">${currentWord}</span>`;
+            currentWord = char;
+            inSingleComment = false;
+          } else {
+            currentWord += char;
+          }
+        } else if (inString) {
+          currentWord += char;
+          if (char === stringChar && code[i - 1] !== '\\') {
+            highlighted += `<span class="string">${currentWord}</span>`;
+            currentWord = '';
+            inString = false;
+          }
+        } else if (char === '"' || char === "'") {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else if (/^\d+$/.test(currentWord)) {
+              highlighted += `<span class="number">${currentWord}</span>`;
+            } else if (/[+\-*/=<>!]/.test(currentWord)) {
+              highlighted += `<span class="operator">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inString = true;
+          stringChar = char;
+        } else if (char === '/' && code[i + 1] === '*') {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inMultiComment = true;
+          i++;
+        } else if (char === '/' && code[i + 1] === '/') {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          currentWord = char;
+          inSingleComment = true;
+          i++;
+        } else if (/\s/.test(char)) {
+          if (currentWord) {
+            if (keywords.includes(currentWord)) {
+              highlighted += `<span class="keyword">${currentWord}</span>`;
+            } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+              highlighted += `<span class="identifier">${currentWord}</span>`;
+            } else if (/^\d+$/.test(currentWord)) {
+              highlighted += `<span class="number">${currentWord}</span>`;
+            } else if (/[+\-*/=<>!]/.test(currentWord)) {
+              highlighted += `<span class="operator">${currentWord}</span>`;
+            } else {
+              highlighted += currentWord;
+            }
+            currentWord = '';
+          }
+          highlighted += char;
+        } else {
+          currentWord += char;
+        }
+      }
+
+      if (currentWord) {
+        if (inMultiComment || inSingleComment) {
+          highlighted += `<span class="comment">${currentWord}</span>`;
+        } else if (inString) {
+          highlighted += `<span class="string">${currentWord}</span>`;
+        } else if (keywords.includes(currentWord)) {
+          highlighted += `<span class="keyword">${currentWord}</span>`;
+        } else if (/^[a-zA-Z_]\w*$/.test(currentWord)) {
+          highlighted += `<span class="identifier">${currentWord}</span>`;
+        } else if (/^\d+$/.test(currentWord)) {
+          highlighted += `<span class="number">${currentWord}</span>`;
+        } else if (/[+\-*/=<>!]/.test(currentWord)) {
+          highlighted += `<span class="operator">${currentWord}</span>`;
+        } else {
+          highlighted += currentWord;
+        }
+      }
+
+      return highlighted;
+    }
+
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab' && suggestionSpan) {
+        e.preventDefault();
+        const cursorPos = editor.selectionStart;
+        const textBefore = editor.value.substring(0, cursorPos);
+        const textAfter = editor.value.substring(cursorPos);
+        editor.value = textBefore + currentSuggestion + textAfter;
+        editor.selectionStart = editor.selectionEnd = cursorPos + currentSuggestion.length;
+        removeSuggestion();
+        updateLineNumbers();
+        updateStatusBar();
+        highlightSyntax();
+      } else if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt') {
+        removeSuggestion();
+      }
+    });
+
+    editor.addEventListener('keyup', (e) => {
+      updateStatusBar();
+      if (e.key === 'Enter') {
+        const editorWrapper = document.querySelector('.editor-wrapper');
+        const editorRect = editor.getBoundingClientRect();
+        const wrapperRect = editorWrapper.getBoundingClientRect();
+        const cursorLine = editor.value.substr(0, editor.selectionStart).split('\n').length;
+        const lineHeight = parseFloat(getComputedStyle(editor).lineHeight);
+        const targetScroll = (cursorLine - 1) * lineHeight - wrapperRect.height / 2;
+        editorWrapper.scrollTop = Math.max(0, targetScroll);
+      }
+    });
+
+    editor.addEventListener('click', updateStatusBar);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveToDevice();
+      }
+    });
+
+    function updateStatusBar() {
+      const text = editor.value;
+      const lines = text.split('\n');
+      document.getElementById('lineCount').textContent = `Lines: ${lines.length}`;
+      const cursorPos = editor.selectionStart;
+      let currentLine = 1;
+      let currentCol = 1;
+      for (let i = 0; i < cursorPos; i++) {
+        if (text[i] === '\n') {
+          currentLine++;
+          currentCol = 1;
+        } else {
+          currentCol++;
+        }
+      }
+      document.getElementById('cursorPos').textContent = `Ln ${currentLine}, Col ${currentCol}`;
+    }
+
+    function updateLineNumbers() {
+      const lineNumbers = document.getElementById('lineNumbers');
+      const lines = editor.value.split('\n');
+      lineNumbers.innerHTML = lines.map((_, i) => i + 1).join('\n');
+    }
+
+    function updateTerminalLineNumbers(content) {
+      const terminalLineNumbers = document.getElementById('terminalLineNumbers');
+      const lines = content.split('\n').filter(line => line.trim() !== '');
+      terminalLineNumbers.innerHTML = lines.map((_, i) => i + 1).join('\n');
+    }
+
+    const editorWrapper = document.querySelector('.editor-wrapper');
+    editorWrapper.addEventListener('scroll', () => {
+      const scrollTop = editorWrapper.scrollTop;
+      document.getElementById('lineNumbers').scrollTop = scrollTop;
+      editor.scrollTop = scrollTop;
+      highlightOverlay.style.top = `${-scrollTop}px`;
+    });
+
+    const terminalWrapper = document.querySelector('.terminal');
+    terminalWrapper.addEventListener('scroll', () => {
+      const scrollTop = terminalWrapper.scrollTop;
+      document.getElementById('terminalLineNumbers').scrollTop = scrollTop;
+      terminal.scrollTop = scrollTop;
+    });
+
+    function removeSuggestion() {
+      if (suggestionSpan && suggestionSpan.parentNode) {
+        suggestionSpan.remove();
+        suggestionSpan = null;
+        highlightSyntax();
+      }
+    }
+
+    editor.addEventListener('blur', removeSuggestion);
+
+    function clearEditor() {
+      editor.value = '';
+      removeSuggestion();
+      updateStatusBar();
+      updateLineNumbers();
+      highlightSyntax();
+    }
+
+    function clearTerminal() {
+      const terminal = document.getElementById("terminalContent");
+      const terminalLineNumbers = document.getElementById("terminalLineNumbers");
+      terminal.innerHTML = "";
+      terminalLineNumbers.innerHTML = "";
+      let inputField = document.getElementById("terminalInput");
+      if (inputField) {
+        inputField.remove();
+      }
+    }
+
+    async function runCode() {
+      const terminal = document.getElementById("terminalContent");
+      terminal.innerHTML = "";
+      const userCode = document.getElementById("editor").value;
+
+      try {
+        const response = await fetch('http://localhost:3000/CPPCOMPILER', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: userCode })
+        });
+
+        const result = await response.json();
+        if (result.error) {
+          const errorOutput = `
+            <span style="color: var(--success-color); font-weight: bold;">❌ Compilation Error</span>
+            <br>${result.output}
+            <br>Exit Code: 1 (Error)
+          `;
+          terminal.innerHTML = errorOutput;
+        } else {
+          terminal.innerHTML = result.output + "\nExit Code: 0 (Success)";
+        }
+        updateTerminalLineNumbers(terminal.innerHTML);
+      } catch (error) {
+        const errorOutput = `
+          <span style="color: var(--success-color); font-weight: bold;">❌ Server Error</span>
+          <br>Failed to compile: ${error.message}
+          <br>Exit Code: 1 (Error)
+        `;
+        terminal.innerHTML = errorOutput;
+        updateTerminalLineNumbers(errorOutput);
+        terminal.style.color = "var(--terminal-text)";
+      }
+    }
+
+    function shareCode() {
+      if (!editor.value.trim()) {
+        alert('Please write some code first');
+        return;
+      }
+      const shareData = {
+        name: currentFileName,
+        content: editor.value
+      };
+      const shareUrl = `${window.location.href.split('?')[0]}?share=${btoa(JSON.stringify(shareData))}`;
+      document.getElementById('shareUrl').value = shareUrl;
+      QRCode.toCanvas(document.getElementById('qrCode'), shareUrl, {
+        width: 150,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      document.getElementById('overlay').classList.add('active');
+      document.getElementById('shareModal').classList.add('active');
+    }
+
+    function copyShareUrl() {
+      const shareUrl = document.getElementById('shareUrl');
+      shareUrl.select();
+      document.execCommand('copy');
+      alert('URL copied to clipboard!');
+    }
+
+    function closeShareModal() {
+      document.getElementById('overlay').classList.remove('active');
+      document.getElementById('shareModal').classList.remove('active');
+    }
+
+    document.getElementById("overlay").addEventListener("click", () => {
+      closeChatbot();
+      closeShareModal();
+    });
+
+    function toggleTheme() {
+      const body = document.body;
+      const themeToggle = document.getElementById("themeToggle");
+      body.classList.toggle("dark-mode");
+      if (body.classList.contains("dark-mode")) {
+        themeToggle.textContent = "🌙";
+      } else {
+        themeToggle.textContent = "☀️";
+      }
+      highlightSyntax();
+    }
+
+    function toggleFullscreen() {
+      const fullscreenToggle = document.getElementById("fullscreenToggle");
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        fullscreenToggle.textContent = "❌";
+      } else {
+        document.exitFullscreen();
+        fullscreenToggle.textContent = "🔲";
+      }
+    }
+
+    function openChatbot() {
+      const chatbotModal = document.getElementById("chatbotModal");
+      chatbotModal.classList.add("active");
+      document.getElementById("overlay").classList.add("active");
+      document.getElementById("chatInput").focus();
+    }
+
+    function closeChatbot() {
+      const chatbotModal = document.getElementById("chatbotModal");
+      chatbotModal.classList.remove("active");
+      document.getElementById("overlay").classList.remove("active");
+      chatHistoryMessages = [];
+      document.getElementById("chatHistory").innerHTML = "";
+    }
+
+    let chatHistoryMessages = [];
+
+    function sendChatMessage() {
+      const chatInput = document.getElementById("chatInput");
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      const chatHistory = document.getElementById("chatHistory");
+      const userMessage = document.createElement("div");
+      userMessage.className = "chat-message user";
+      userMessage.textContent = message;
+      chatHistory.appendChild(userMessage);
+
+      chatInput.value = "";
+      chatHistoryMessages.push({ role: "user", content: message });
+
+      const prompt = `Conversation history:\n${chatHistoryMessages.map(m => `${m.role}: ${m.content}`).join("\n")}\n\nUser query in a C++ code editor: "${message}". Provide a concise response (max 150 characters), including code if relevant.`;
+      callGemini(prompt).then(response => {
+        const trimmedResponse = response ? response.substring(0, 150) : "Sorry, I couldn't process that.";
+        const aiMessage = document.createElement("div");
+        aiMessage.className = "chat-message ai";
+        aiMessage.textContent = trimmedResponse;
+        chatHistory.appendChild(aiMessage);
+        chatHistoryMessages.push({ role: "ai", content: trimmedResponse });
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      });
+    }
+
+    document.getElementById("chatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+    function toggleSettings() {
+      const settingsMenu = document.getElementById("settingsMenu");
+      settingsMenu.classList.toggle("active");
+    }
+
+    document.getElementById("settingsToggle").addEventListener("click", toggleSettings);
+
+    document.addEventListener("click", (e) => {
+      const settingsContainer = document.querySelector(".settings-container");
+      if (!settingsContainer.contains(e.target)) {
+        document.getElementById("settingsMenu").classList.remove("active");
+      }
+    });
+
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedCode = urlParams.get('share');
+      const editor = document.getElementById('editor');
+      const defaultCode = `#include <iostream>\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}`;
+      if (sharedCode) {
+        try {
+          const { name, content } = JSON.parse(atob(sharedCode));
+          const id = 'file_' + Date.now();
+          localStorage.setItem(id, JSON.stringify({
+            name,
+            content,
+            timestamp: Date.now()
+          }));
+          currentFileId = id;
+          currentFileName = name;
+          editor.value = content;
+        } catch (error) {
+          console.error('Failed to load shared code:', error);
+          editor.value = defaultCode;
+        }
+      } else {
+        let recentFile = null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('file_')) {
+            const file = JSON.parse(localStorage.getItem(key));
+            if (!recentFile || file.timestamp > recentFile.timestamp) {
+              recentFile = { id: key, ...file };
+            }
+          }
+        }
+        if (recentFile) {
+          currentFileId = recentFile.id;
+          currentFileName = recentFile.name;
+          editor.value = recentFile.content;
+        } else {
+          currentFileName = "untitled.cpp";
+          editor.value = defaultCode;
+          const id = 'file_' + Date.now();
+          localStorage.setItem(id, JSON.stringify({
+            name: currentFileName,
+            content: defaultCode,
+            timestamp: Date.now()
+          }));
+          currentFileId = id;
+        }
+      }
+      updateFileList();
+      updateStatusBar();
+      updateLineNumbers();
+      highlightSyntax();
+    };
+  </script>
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92d2a6da6c52453d',t:'MTc0NDEyNDYwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92e297908a2b44ff',t:'MTc0NDI5MTc1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>

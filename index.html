@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompileX: AI-Powered Compiler & Interpreter</title>
+    <style>
+        /* Theme Variables */
+        :root[data-theme="light"] {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --tertiary: #f97316;
+            --accent: #d946ef;
+            --success: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --bg-main: #ffffff;
+            --bg-card: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        :root[data-theme="dark"] {
+            --primary: #818cf8;
+            --primary-dark: #6366f1;
+            --secondary: #22d3ee;
+            --tertiary: #fb923c;
+            --accent: #e879f9;
+            --success: #34d399;
+            --dark: #0f172a;
+            --light: #1e293b;
+            --gray: #94a3b8;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-main);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        header {
+            background-color: var(--dark);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .logo span {
+            color: var(--accent);
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            align-items: center;
+        }
+        
+        .nav-links li {
+            margin-left: 2rem;
+            position: relative;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+            padding: 0.5rem 0;
+            display: block;
+        }
+        
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+        
+        /* Dropdown styling */
+        .dropdown {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .dropdown-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--light);
+            min-width: 180px;
+            border-radius: 5px;
+            box-shadow: 0 8px 16px var(--shadow);
+            padding: 0.5rem 0;
+            z-index: 1;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s, visibility 0s linear 0.3s;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.3s, transform 0.3s, visibility 0s linear 0s;
+        }
+        
+        .dropdown-content a {
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            display: block;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+        
+        .dropdown-content .language-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .language-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: white;
+            font-weight: bold;
+        }
+        
+        /* Theme toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dropdown-label {
+            display: flex;
+            align-items: center;
+        }
+        
+        .dropdown-label::after {
+            content: "▼";
+            font-size: 0.75rem;
+            margin-left: 5px;
+            transition: transform 0.3s;
+        }
+        
+        .dropdown:hover .dropdown-label::after {
+            transform: rotate(180deg);
+        }
+        
+        .hero {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), /* optional dark overlay */
+            url('image.jpg') no-repeat center center / cover;;
+            color: white;
+            padding: 5rem 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--tertiary);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid white;
+            margin-left: 1rem;
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .features {
+            padding: 5rem 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px var(--shadow);
+            padding: 2rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px var(--shadow);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--tertiary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+        
+        .demo {
+            background-color: var(--light);
+            color: var(--text-primary);
+            padding: 5rem 0;
+        }
+        
+        .demo-container {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+        
+        .demo-content {
+            flex: 1;
+        }
+        
+        .demo-img {
+            flex: 1;
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+        
+        .code-editor {
+            background-color: var(--dark);
+            border-radius: 5px;
+            padding: 1.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            color: #a3bffa;
+        }
+        
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .language-selector {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .editor-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .editor-buttons button {
+            background-color: var(--gray);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+        }
+        
+        .editor-buttons button:hover {
+            background-color: var(--primary);
+        }
+        
+        .code-content {
+            line-height: 1.5;
+        }
+        
+        .keyword {
+            color: #ed64a6;
+        }
+        
+        .string {
+            color: #48bb78;
+        }
+        
+        .comment {
+            color: #718096;
+        }
+        
+        .ai-suggestion {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-left: 3px solid var(--primary);
+            padding-left: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .testimonials {
+            padding: 5rem 0;
+            background-color: var(--bg-card);
+        }
+        
+        .platforms {
+            padding: 5rem 0;
+            background-color: var(--bg-main);
+        }
+        
+        .platform-container {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+        
+        .platform-content {
+            flex: 1;
+        }
+        
+        .platform-content h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-size: 1.75rem;
+        }
+        
+        .platform-content p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .platform-images {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+        
+        .platform-card {
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px var(--shadow);
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .platform-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px var(--shadow);
+        }
+        
+        .platform-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+        
+        .platform-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .platform-card p {
+            color: var(--text-secondary);
+        }
+        
+        .newsletter {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            padding: 5rem 0;
+            text-align: center;
+        }
+        
+        .newsletter h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .newsletter p {
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .newsletter-form {
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .newsletter-form input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 5px 0 0 5px;
+            font-size: 1rem;
+            outline: none;
+        }
+        
+        .newsletter-form button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--tertiary);
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .newsletter-form button:hover {
+            background-color: var(--accent);
+        }
+        
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 3rem 0;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-logo span {
+            color: var(--accent);
+        }
+        
+        .footer-links h3 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            color: var(--secondary);
+        }
+        
+        .footer-links ul {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-links a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            margin-top: 3rem;
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid #4b5563;
+            color: var(--gray);
+        }
+
+        /* Animated Features */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .animated-icon {
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            opacity: 0;
+            animation: fadeInUp 0.5s forwards;
+        }
+
+        .language-item {
+            opacity: 0;
+            animation: fadeInUp 0.3s forwards;
+        }
+
+        .dropdown-content a:nth-child(1) .language-item { animation-delay: 0.05s; }
+        .dropdown-content a:nth-child(2) .language-item { animation-delay: 0.1s; }
+        .dropdown-content a:nth-child(3) .language-item { animation-delay: 0.15s; }
+        .dropdown-content a:nth-child(4) .language-item { animation-delay: 0.2s; }
+
+        @media (max-width: 768px) {
+            .nav-dropdown-container {
+                display: none;
+            }
+            
+            .demo-container,
+            .platform-container {
+                flex-direction: column;
+            }
+            
+            .platform-images {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .newsletter-form {
+                flex-direction: column;
+            }
+            
+            .newsletter-form input {
+                border-radius: 5px;
+                margin-bottom: 1rem;
+            }
+            
+            .newsletter-form button {
+                border-radius: 5px;
+            }
+        }
+          
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo"><a href="index.html" style="text-decoration: none; color: inherit;">Compile<span>X</span></a></div>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li class="dropdown">
+                        <a href="#compilers" class="dropdown-label">Compilers</a>
+                        <div class="dropdown-content">
+                            <a href="C COMPILER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">C</div>
+                                    <span>C</span>
+                                </div>
+                            </a>
+                            <a href="CPPCOMPILER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">C++</div>
+                                    <span>C++</span>
+                                </div>
+                            </a>
+                            <a href="JAVA COMPILER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">J</div>
+                                    <span>Java</span>
+                                </div>
+                            </a>
+                            <a href="JAVASCRIPTCOMPILER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">JS</div>
+                                    <span>JavaScript</span>
+                                </div>
+                            </a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#interpreters" class="dropdown-label">Interpreters</a>
+                        <div class="dropdown-content">
+                            <a href="PYTHON INTERPRETER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">PY</div>
+                                    <span>Python</span>
+                                </div>
+                            </a>
+                            <a href="R INTERPRETER.html">
+                                <div class="language-item">
+                                    <div class="language-icon">R</div>
+                                    <span>R</span>
+                                </div>
+                            </a>
+                        </div>
+                    </li>
+                    <li><a href="#platforms">Platforms</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                    <li>
+                        <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()">🌓</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>CompileX: The Future of AI-Powered Development</h1>
+            <p>An intelligent compiler and interpreter platform that enhances your coding experience with AI-powered code suggestions, error detection, correction, and an integrated chatbot assistant.</p>
+            <div>
+                <a href="#demo" class="btn">Try Demo</a>
+                <a href="#platforms" class="btn btn-outline">Explore Platforms</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Powerful AI Features</h2>
+                <p>Experience the next generation of programming tools with intelligent assistance at every step</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">📝</div>
+                    <h3>Smart Code Suggestions</h3>
+                    <p>CompileX analyzes your coding patterns and offers context-aware suggestions based on your previous code, helping you write better and more efficient programs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">🔍</div>
+                    <h3>Error Detection & Correction</h3>
+                    <p>Our AI instantly identifies errors in your code and provides intelligent fix suggestions, eliminating debugging frustration and saving valuable time.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">🤖</div>
+                    <h3>AI Chatbot Assistant</h3>
+                    <p>Get real-time help with coding problems, learn new concepts, and receive personalized guidance through our integrated AI chatbot companion.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">🚀</div>
+                    <h3>Multi-Language Support</h3>
+                    <p>CompileX supports a wide range of programming languages including Python, JavaScript, Java, C++, Ruby, and many more with language-specific optimizations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">⚡</div>
+                    <h3>Performance Optimization</h3>
+                    <p>Our AI analyzes your code execution patterns and suggests performance improvements to make your programs faster and more efficient.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon animated-icon">🔄</div>
+                    <h3>Continuous Learning</h3>
+                    <p>CompileX adapts to your coding style over time, making increasingly personalized and relevant suggestions as you use the platform.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="section-title">
+                <h2>See CompileX in Action</h2>
+                <p>Experience the power of AI-assisted development</p>
+            </div>
+            <div class="demo-container">
+                <div class="demo-content">
+                    <h3>Intelligent Code Assistance</h3>
+                    <p>Watch how CompileX provides smart suggestions based on your code context, detects potential errors before you run your program, and offers helpful guidance through its integrated AI chatbot.</p>
+                    <p>Our platform continuously learns from your coding patterns to provide increasingly personalized assistance, making your development workflow smoother and more efficient.</p>
+                    <a href="#platforms" class="btn" style="margin-top: 1.5rem;">Learn About Our Platforms</a>
+                </div>
+                <div class="demo-img">
+                    <div class="code-editor">
+                        <div class="editor-header">
+                            <select class="language-selector">
+                                <option>Python</option>
+                                <option>JavaScript</option>
+                                <option>Java</option>
+                                <option>C++</option>
+                            </select>
+                            <div class="editor-buttons">
+                                <button>Run</button>
+                                <button>Save</button>
+                            </div>
+                        </div>
+                        <div class="code-content">
+                            <div><span class="keyword">def</span> fibonacci(n):</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> n <= 0:</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> 0</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">elif</span> n == 1:</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> 1</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span>:</div>
+                            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> fibonacci(n-1) + fibonacci(n-2)</div>
+                            <div>&nbsp;</div>
+                            <div><span class="comment"># AI Suggestion:</span></div>
+                            <div class="ai-suggestion">
+                                <div><span class="comment"># Consider using memoization to improve performance</span></div>
+                                <div><span class="keyword">def</span> fibonacci_optimized(n, memo={}):</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> n <span class="keyword">in</span> memo:</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> memo[n]</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> n <= 0:</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> 0</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">elif</span> n == 1:</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> 1</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span>:</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memo[n] = fibonacci_optimized(n-1, memo) + fibonacci_optimized(n-2, memo)</div>
+                                <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> memo[n]</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="platforms" class="platforms">
+        <div class="container">
+            <div class="section-title">
+                <h2>Available on Every Platform</h2>
+                <p>Code anywhere, anytime with our cross-platform ecosystem</p>
+            </div>
+            <div class="platform-container">
+                <div class="platform-content">
+                    <h3>Seamless Integration Across Devices</h3>
+                    <p>We're expanding CompileX beyond the web to bring our AI-powered development tools to wherever you code. Our cross-platform approach ensures your coding experience remains consistent whether you're on your desktop computer or mobile device.</p>
+                    <p>Our cloud synchronization keeps your projects, preferences, and AI assistant learning in sync across all your devices, allowing you to seamlessly transition between platforms without missing a beat.</p>
+                    <a href="#newsletter" class="btn" style="margin-top: 1.5rem;">Get Early Access</a>
+                </div>
+                <div class="platform-images">
+                    <div class="platform-card">
+                        <div class="platform-icon">💻</div>
+                        <h3>Desktop Application</h3>
+                        <p>Powerful native apps for Windows, macOS, and Linux with deep system integration and offline capabilities.</p>
+                    </div>
+                    <div class="platform-card">
+                        <div class="platform-icon">📱</div>
+                        <h3>Mobile App</h3>
+                        <p>Code on the go with our fully-featured iOS and Android applications designed for touch interfaces.</p>
+                    </div>
+                    <div class="platform-card">
+                        <div class="platform-icon">🌐</div>
+                        <h3>Web Platform</h3>
+                        <p>Access your projects from any browser without installation, perfect for quick edits and collaboration.</p>
+                    </div>
+                    <div class="platform-card">
+                        <div class="platform-icon">🔌</div>
+                        <h3>IDE Extensions</h3>
+                        <p>Integrate CompileX's AI capabilities directly into your favorite development environments.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="newsletter" class="newsletter">
+        <div class="container">
+            <h2>Stay Updated on Our Progress</h2>
+            <p>Join our newsletter to receive development updates, early access invitations, and exclusive content about CompileX's expanding ecosystem.</p>
+            <div class="newsletter-form">
+                <input type="email" placeholder="Enter your email address">
+                <button type="submit">Subscribe</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <h3>Product</h3>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#platforms">Platforms</a></li>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Roadmap</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">API Documentation</a></li>
+                        <li><a href="#">Community Forum</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Press Kit</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">GDPR Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div id="contact" class="footer-bottom">
+                <p>&copy; 2025 CompileX. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            // Save preference to local storage
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        // Check for saved theme preference or respect OS preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        
+        // Add intersection observer for fade-in animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.feature-card, .platform-card').forEach(element => {
+                observer.observe(element);
+                element.classList.remove('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>
