@@ -1,11 +1,10 @@
 # CompileX
-This is our AI - Powered Offline Javascript Compiler
+This is our AI - Powered Compiler and Interpreter
 
 ## About the Project
-This is an **offline JavaScript compiler** with an **integrated AI assistant** to help developers write and debug code efficiently. The AI provides code suggestions, error explanations, and learning resources.
+This is an **AI-powered compiler and Interpreter** with an **integrated AI assistant** to help developers write and debug code efficiently. The AI provides code suggestions, error explanations, and learning resources.
 
 ## Features
-- **Offline JavaScript Execution**
 - **AI Assistance for Code Suggestions & Debugging**
 - **Simple & Clean UI (HTML, CSS, JavaScript)**
 - **Future Support for Multiple Languages (C, C++, Python, Java)**
@@ -18,8 +17,8 @@ This is an **offline JavaScript compiler** with an **integrated AI assistant** t
 - **Desktop App (Future Plan):** Electron.js
 
 ## 👥 Team Members
-- **Pushpak** – Frontend Development & AI Integration  
-- **Aneesh** – Backend Development & AI Model Handling  
+- **Pushpak** – Frontend Development, AI Integration, Overall Intigration
+- **Aneesh** – Backend Development, Deployment and testing  
 - **Saksham** – Deployment, Testing, & Overall Integration  
 
 ## Installation & Setup
